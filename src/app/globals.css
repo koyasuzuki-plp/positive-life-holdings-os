@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 6% 6%;
+    --foreground: 60 9% 96%;
+    --card: 240 4% 12%;
+    --card-foreground: 60 9% 96%;
+    --primary: 173 58% 39%;
+    --primary-foreground: 240 6% 6%;
+    --muted: 240 4% 18%;
+    --muted-foreground: 240 5% 65%;
+    --border: 240 4% 20%;
+    --input: 240 4% 20%;
+    --ring: 173 58% 39%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply min-h-dvh bg-background font-sans text-foreground antialiased;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Hiragino Sans",
+      "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
