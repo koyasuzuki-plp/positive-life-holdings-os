@@ -27,6 +27,7 @@ export function VisionPage() {
   const { vision, ready, updateVision } = useVisionContext();
   const [keywordsText, setKeywordsText] = useState("");
   const [editingKeywords, setEditingKeywords] = useState(false);
+  const [keywordsSaved, setKeywordsSaved] = useState(false);
   const [addForm, setAddForm] = useState(EMPTY_FORM);
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -48,6 +49,8 @@ export function VisionPage() {
       .filter(Boolean);
     updateVision({ ...vision, visionKeywords: keywords });
     setEditingKeywords(false);
+    setKeywordsSaved(true);
+    setTimeout(() => setKeywordsSaved(false), 2000);
   }
 
   function handleAddMilestone() {
@@ -131,16 +134,22 @@ export function VisionPage() {
               ) : (
                 <p className="text-xs text-muted-foreground">ビジョンキーワードを設定してください</p>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  setKeywordsText(vision.visionKeywords.join("、"));
-                  setEditingKeywords(true);
-                }}
-                className="text-xs font-medium text-primary active:opacity-70"
-              >
-                編集
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeywordsText(vision.visionKeywords.join("、"));
+                    setEditingKeywords(true);
+                    setKeywordsSaved(false);
+                  }}
+                  className="text-xs font-medium text-primary active:opacity-70"
+                >
+                  編集
+                </button>
+                {keywordsSaved && (
+                  <span className="text-xs text-primary">保存しました ✓</span>
+                )}
+              </div>
             </div>
           )}
         </Card>

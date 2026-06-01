@@ -28,9 +28,11 @@ export function BusinessScoresPage() {
   const router = useRouter();
   const { scores, ready, updateScores } = useVisionContext();
   const [form, setForm] = useState<BusinessScores>(scores);
+  const [isDirty, setIsDirty] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (ready) setForm(scores);
+    if (ready) { setForm(scores); setIsDirty(false); setSaved(false); }
   }, [ready, scores]);
 
   function handleSave() {
@@ -40,11 +42,15 @@ export function BusinessScoresPage() {
       updated[id] = { ...updated[id], updatedAt: today };
     }
     updateScores(updated);
-    router.push("/board");
+    setIsDirty(false);
+    setSaved(true);
+    setTimeout(() => router.push("/board"), 900);
   }
 
   function patchScore(id: BusinessId, patch: Partial<BusinessScore>) {
     setForm((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+    setIsDirty(true);
+    setSaved(false);
   }
 
   if (!ready) {
@@ -130,12 +136,18 @@ export function BusinessScoresPage() {
       </div>
 
       <StickyFooter>
+        {saved ? (
+          <p className="mb-2 text-center text-xs text-primary">保存しました ✓</p>
+        ) : isDirty ? (
+          <p className="mb-2 text-center text-xs text-amber-500">● 未保存</p>
+        ) : null}
         <button
           type="button"
           onClick={handleSave}
-          className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground active:opacity-90"
+          disabled={saved}
+          className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground active:opacity-90 disabled:opacity-60"
         >
-          保存して役員会に戻る
+          {saved ? "保存しました ✓" : "保存して役員会に戻る"}
         </button>
       </StickyFooter>
     </AppShell>

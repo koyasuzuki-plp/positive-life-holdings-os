@@ -18,23 +18,34 @@ type PriorityActionCardProps = {
 export function PriorityActionCard({ value, onChange }: PriorityActionCardProps) {
   const [local, setLocal] = useState(value);
   const [editing, setEditing] = useState(!value.action);
+  const [savedMsg, setSavedMsg] = useState(false);
 
   useEffect(() => {
     setLocal(value);
     if (value.action) setEditing(false);
   }, [value]);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (JSON.stringify(local) !== JSON.stringify(value)) {
-        onChange(local);
-      }
-    }, 400);
-    return () => clearTimeout(t);
-  }, [local, onChange, value]);
+  const isDirty =
+    editing &&
+    (local.action !== value.action ||
+      local.duration !== value.duration ||
+      local.reason !== value.reason);
 
   function update(patch: Partial<PriorityAction>) {
     setLocal((prev) => ({ ...prev, ...patch }));
+  }
+
+  function handleToggleDone() {
+    const next = { ...local, done: !local.done };
+    setLocal(next);
+    onChange(next);
+  }
+
+  function handleConfirm() {
+    onChange(local);
+    setEditing(false);
+    setSavedMsg(true);
+    setTimeout(() => setSavedMsg(false), 2000);
   }
 
   const hasMission = Boolean(local.action.trim());
@@ -47,7 +58,7 @@ export function PriorityActionCard({ value, onChange }: PriorityActionCardProps)
         action={
           <button
             type="button"
-            onClick={() => update({ done: !local.done })}
+            onClick={handleToggleDone}
             aria-pressed={local.done}
             className={cn(
               "flex min-h-9 min-w-9 items-center justify-center rounded-full border-2 transition-colors",
@@ -89,13 +100,18 @@ export function PriorityActionCard({ value, onChange }: PriorityActionCardProps)
               {local.reason}
             </p>
           )}
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="text-xs font-medium text-primary active:opacity-70"
-          >
-            作戦を編集
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => { setEditing(true); setSavedMsg(false); }}
+              className="text-xs font-medium text-primary active:opacity-70"
+            >
+              作戦を編集
+            </button>
+            {savedMsg && (
+              <span className="text-xs text-primary">保存しました ✓</span>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-2.5">
@@ -108,6 +124,7 @@ export function PriorityActionCard({ value, onChange }: PriorityActionCardProps)
             type="text"
             value={local.action}
             onChange={(e) => update({ action: e.target.value })}
+            onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
             placeholder="例：中村さんへのフォロー"
             maxLength={MAX_PRIORITY_ACTION_LENGTH}
             className="w-full border-0 border-b border-border bg-transparent py-2 text-base font-medium text-card-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
@@ -117,6 +134,7 @@ export function PriorityActionCard({ value, onChange }: PriorityActionCardProps)
               type="text"
               value={local.duration}
               onChange={(e) => update({ duration: e.target.value })}
+              onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
               placeholder="15分"
               maxLength={20}
               className="w-16 border-0 border-b border-border bg-transparent py-1 text-sm text-card-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
@@ -125,20 +143,28 @@ export function PriorityActionCard({ value, onChange }: PriorityActionCardProps)
               type="text"
               value={local.reason}
               onChange={(e) => update({ reason: e.target.value })}
+              onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
               placeholder="優先理由（Visionとの接続）"
               maxLength={MAX_PRIORITY_REASON_LENGTH}
               className="min-w-0 flex-1 border-0 border-b border-border bg-transparent py-1 text-xs text-muted-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
           </div>
-          {hasMission && (
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="min-h-10 w-full rounded-lg bg-primary py-2 text-xs font-medium text-primary-foreground active:opacity-90"
-            >
-              作戦を確定
-            </button>
-          )}
+          <div className="flex items-center justify-between pt-1">
+            {isDirty ? (
+              <span className="text-[11px] text-amber-500">● 未保存</span>
+            ) : (
+              <span />
+            )}
+            {hasMission && (
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="min-h-10 rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground active:opacity-90"
+              >
+                作戦を確定・保存
+              </button>
+            )}
+          </div>
         </div>
       )}
     </Card>

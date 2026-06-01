@@ -24,14 +24,24 @@ export function PositionPage() {
   const router = useRouter();
   const { position, ready, updatePosition } = useVisionContext();
   const [form, setForm] = useState<CurrentPosition>(position);
+  const [isDirty, setIsDirty] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (ready) setForm(position);
+    if (ready) { setForm(position); setIsDirty(false); setSaved(false); }
   }, [ready, position]);
+
+  function patch(p: Partial<CurrentPosition>) {
+    setForm((f) => ({ ...f, ...p }));
+    setIsDirty(true);
+    setSaved(false);
+  }
 
   function handleSave() {
     updatePosition({ ...form, updatedAt: todayKey() });
-    router.push("/board");
+    setIsDirty(false);
+    setSaved(true);
+    setTimeout(() => router.push("/board"), 900);
   }
 
   if (!ready) {
@@ -58,20 +68,20 @@ export function PositionPage() {
               label="今月の月商"
               placeholder="例: 45万円"
               value={form.monthlyRevenue}
-              onChange={(v) => setForm((f) => ({ ...f, monthlyRevenue: v }))}
+              onChange={(v) => patch({ monthlyRevenue: v })}
             />
             <Field
               label="今の最大の壁"
               placeholder="例: 安定的な集客ができていない"
               value={form.mainChallenge}
-              onChange={(v) => setForm((f) => ({ ...f, mainChallenge: v }))}
+              onChange={(v) => patch({ mainChallenge: v })}
               multiline
             />
             <Field
               label="直近の最大の成果"
               placeholder="例: OriVisで新規契約3件"
               value={form.biggestWin}
-              onChange={(v) => setForm((f) => ({ ...f, biggestWin: v }))}
+              onChange={(v) => patch({ biggestWin: v })}
               multiline
             />
           </div>
@@ -84,7 +94,7 @@ export function PositionPage() {
               <button
                 key={level}
                 type="button"
-                onClick={() => setForm((f) => ({ ...f, overallProgress: level }))}
+                onClick={() => patch({ overallProgress: level })}
                 className={`flex flex-1 flex-col items-center gap-1 rounded-lg border py-2 transition-colors ${
                   form.overallProgress === level
                     ? "border-primary bg-primary/10 text-primary"
@@ -100,12 +110,18 @@ export function PositionPage() {
       </div>
 
       <StickyFooter>
+        {saved ? (
+          <p className="mb-2 text-center text-xs text-primary">保存しました ✓</p>
+        ) : isDirty ? (
+          <p className="mb-2 text-center text-xs text-amber-500">● 未保存</p>
+        ) : null}
         <button
           type="button"
           onClick={handleSave}
-          className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground active:opacity-90"
+          disabled={saved}
+          className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground active:opacity-90 disabled:opacity-60"
         >
-          保存して役員会に戻る
+          {saved ? "保存しました ✓" : "保存して役員会に戻る"}
         </button>
       </StickyFooter>
     </AppShell>

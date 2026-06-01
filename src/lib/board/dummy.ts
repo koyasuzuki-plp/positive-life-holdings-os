@@ -5,7 +5,8 @@ import type {
 } from "./context";
 import { BUSINESS_LABELS, HORIZON_LABELS } from "./context";
 import type { NextMilestone } from "./milestone";
-import type { Agenda, ExecutiveStatement } from "./types";
+import type { Agenda, ExecutiveId, ExecutiveStatement } from "./types";
+import { buildRoundPrefix } from "./roundEngine";
 
 export type BoardContext = {
   vision?: VisionMap;
@@ -161,5 +162,70 @@ export function getDummyResolution(
     nextAction: agenda.decision
       ? `${agenda.decision}に対し、48時間以内に最初のアクションを実行する。担当：代表こうや。`
       : "48時間以内に最初の一手を実行し、30日後に役員会で進捗を報告する。",
+  };
+}
+
+// ── ラウンド2/3用：CEO コメントを踏まえた再発言 ────────────────────
+export function generateRoundStatements(
+  agenda: Agenda,
+  ceoComment: string,
+  roundNumber: number,
+  ctx: BoardContext,
+  executiveIds: ExecutiveId[],
+): ExecutiveStatement[] {
+  const topic = agenda.topic || "今日の議題";
+  const { vision, scores } = ctx;
+  const visionKeyword = vision?.visionKeywords?.[0] ?? "";
+  const visionNote = visionKeyword
+    ? ` ビジョン「${visionKeyword}」との接続を意識して実行してください。`
+    : "";
+  const prefix = buildRoundPrefix(ceoComment, roundNumber);
+
+  return executiveIds.map((id): ExecutiveStatement => {
+    let base = "";
+    switch (id) {
+      case "future-kouya":
+        base = futureKouya(agenda, ctx);
+        break;
+      case "cfo":
+        base = cfo(agenda, ctx);
+        break;
+      case "coo":
+        base = coo(agenda, ctx);
+        break;
+      case "cho":
+        base = cho(agenda, ctx);
+        break;
+      case "strategy":
+        base = strategy(agenda, ctx);
+        break;
+      default: {
+        const bizId = id as "orivis" | "diet" | "ai" | "kirei" | "publishing";
+        base = businessExec(topic, bizId, scores, visionNote);
+      }
+    }
+    return { executiveId: id, content: `${prefix} ${base}` };
+  });
+}
+
+// ── ラウンド2/3用：CEO コメントを反映した決議案 ────────────────────
+export function generateRoundResolution(
+  agenda: Agenda,
+  ceoComment: string,
+  roundNumber: number,
+): { resolution: string; nextAction: string } {
+  const topic = agenda.topic || "今日の議題";
+  const short = ceoComment.trim().length > 0
+    ? (ceoComment.length > 22 ? `${ceoComment.slice(0, 22)}…` : ceoComment)
+    : "前回の議論";
+  const isFinal = roundNumber >= 3;
+
+  return {
+    resolution: isFinal
+      ? `「${short}」というCEOの最終指示を受け、全役員が最終見解を統合しました。「${topic}」について確実に実行できる最小単位のアクションを即時開始し、30日後に成果を計測します。`
+      : `CEOの「${short}」というご意向を踏まえ、「${topic}」について役員会の見解を更新しました。前回より実行精度を高め、CEOの方向性に沿った形で前進することを決議します。`,
+    nextAction: agenda.decision
+      ? `${agenda.decision}に対し、「${short}」を軸に48時間以内に最初のアクションを実行する。担当：代表こうや。`
+      : `「${short}」の方向性で48時間以内に最初の一手を実行し、30日後に役員会で進捗を報告する。`,
   };
 }

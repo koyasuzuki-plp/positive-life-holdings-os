@@ -30,13 +30,26 @@ export type ExecutiveStatement = {
   content: string;
 };
 
+export type MeetingRound = {
+  roundNumber: number;
+  statements: ExecutiveStatement[];
+  resolution: string;
+  nextAction: string;
+  ceoContinueComment?: string;
+};
+
 export type BoardSession = {
   id: string;
   date: string;
   agenda: Agenda;
-  statements: ExecutiveStatement[];
-  resolution: string;
-  nextAction: string;
+  // Multi-round fields (new sessions)
+  rounds?: MeetingRound[];
+  finalResolution?: string;
+  finalNextAction?: string;
+  // Legacy fields (existing sessions before Phase C)
+  statements?: ExecutiveStatement[];
+  resolution?: string;
+  nextAction?: string;
 };
 
 export type BoardState = {

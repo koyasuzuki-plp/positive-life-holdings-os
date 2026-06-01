@@ -35,32 +35,29 @@ export function DailyLogForm({ date, initial, onSave }: DailyLogFormProps) {
   }, [initial, date]);
 
   const canSave = mood !== null && energy !== null;
+  const isDirty =
+    mood !== initial.mood ||
+    energy !== initial.energy ||
+    progress !== initial.progress ||
+    gratitude !== initial.gratitude ||
+    insight !== initial.insight ||
+    tomorrowStep !== initial.tomorrowStep;
 
   function handleSave() {
     if (!canSave) return;
-    onSave({
-      date,
-      mood,
-      energy,
-      progress,
-      gratitude,
-      insight,
-      tomorrowStep,
-    });
+    onSave({ date, mood, energy, progress, gratitude, insight, tomorrowStep });
     setSaved(true);
   }
 
+  function markDirty() {
+    setSaved(false);
+  }
+
   return (
-    <form
-      className="space-y-3 pb-28"
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleSave();
-      }}
-    >
+    <div className="space-y-3 pb-28">
       <Card>
         <CardHeader label="状態" title="気分" />
-        <MoodPicker value={mood} onChange={setMood} compact />
+        <MoodPicker value={mood} onChange={(v) => { setMood(v); markDirty(); }} compact />
       </Card>
 
       <Card>
@@ -70,56 +67,57 @@ export function DailyLogForm({ date, initial, onSave }: DailyLogFormProps) {
             id="progress"
             label="今日進んだこと"
             value={progress}
-            onChange={setProgress}
+            onChange={(v) => { setProgress(v); markDirty(); }}
             placeholder="例：提案送付、習慣2/3"
           />
           <Field
             id="gratitude"
             label="感謝したこと"
             value={gratitude}
-            onChange={setGratitude}
+            onChange={(v) => { setGratitude(v); markDirty(); }}
             placeholder="例：チームの迅速な対応"
           />
           <Field
             id="insight"
             label="気づき"
             value={insight}
-            onChange={setInsight}
+            onChange={(v) => { setInsight(v); markDirty(); }}
             placeholder="例：午前の集中が成果に直結"
           />
           <Field
             id="tomorrow"
             label="明日の一歩"
             value={tomorrowStep}
-            onChange={setTomorrowStep}
+            onChange={(v) => { setTomorrowStep(v); markDirty(); }}
             placeholder="例：中村さんへフォロー"
           />
           <fieldset>
             <legend className="mb-2 text-[11px] font-medium text-muted-foreground">
               今日のエネルギー <span className="text-primary">*</span>
             </legend>
-            <EnergyPicker value={energy} onChange={setEnergy} />
+            <EnergyPicker value={energy} onChange={(v) => { setEnergy(v); markDirty(); }} />
           </fieldset>
         </div>
       </Card>
 
       <div className="fixed right-0 bottom-0 left-0 z-10 border-t border-border bg-card/95 px-4 py-3 backdrop-blur safe-bottom">
         <div className="mx-auto max-w-md">
-          {saved && (
-            <p className="mb-2 text-center text-xs text-primary">
-              保存しました
-            </p>
-          )}
+          {saved ? (
+            <p className="mb-2 text-center text-xs text-primary">保存しました ✓</p>
+          ) : isDirty ? (
+            <p className="mb-2 text-center text-xs text-amber-500">● 未保存</p>
+          ) : null}
           <button
-            type="submit"
+            type="button"
             disabled={!canSave}
+            onClick={handleSave}
             className="w-full rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground disabled:bg-muted disabled:text-muted-foreground enabled:active:opacity-90"
           >
             {canSave ? "振り返りを保存" : "気分とエネルギーを入力"}
           </button>
         </div>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -146,6 +144,7 @@ function Field({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
         placeholder={placeholder}
         maxLength={MAX_LOG_FIELD_LENGTH}
         className={inputClassName}
