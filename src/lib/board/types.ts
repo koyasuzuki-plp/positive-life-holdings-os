@@ -16,6 +16,7 @@ export type Executive = {
   role: string;
   colorClass: string;
   initial: string;
+  businessLabel: string;
 };
 
 export type Agenda = {
@@ -42,6 +43,7 @@ export type BoardSession = {
   id: string;
   date: string;
   agenda: Agenda;
+  attendees?: ExecutiveId[];
   // Multi-round fields (new sessions)
   rounds?: MeetingRound[];
   finalResolution?: string;
@@ -55,3 +57,14 @@ export type BoardSession = {
 export type BoardState = {
   sessions: BoardSession[];
 };
+
+export type ExecutiveKarte = {
+  currentStatus: string;
+  goal: string;
+  kpis: string;
+  challenges: string;
+  questionsForCEO: string;
+  updatedAt: string;
+};
+
+export type KarteMap = Partial<Record<ExecutiveId, ExecutiveKarte>>;

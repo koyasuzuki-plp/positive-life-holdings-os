@@ -5,7 +5,7 @@ import type {
 } from "./context";
 import { BUSINESS_LABELS, HORIZON_LABELS } from "./context";
 import type { NextMilestone } from "./milestone";
-import type { Agenda, ExecutiveId, ExecutiveStatement } from "./types";
+import type { Agenda, ExecutiveId, ExecutiveKarte, ExecutiveStatement, KarteMap } from "./types";
 import { buildRoundPrefix } from "./roundEngine";
 
 export type BoardContext = {
@@ -15,12 +15,32 @@ export type BoardContext = {
   nextMilestone?: NextMilestone | null;
   energy?: number | null;
   mood?: number | null;
+  kartes?: KarteMap;
 };
 
-// ── 未来のこうや（3段構成） ─────────────────────────────────────
+function hasKarte(k: ExecutiveKarte | undefined): boolean {
+  return !!(k && (k.currentStatus || k.goal || k.kpis || k.challenges));
+}
+
+// ── 未来のこうや ────────────────────────────────────────────────
 function futureKouya(agenda: Agenda, ctx: BoardContext): string {
   const topic = agenda.topic || "今日の議題";
-  const { position, nextMilestone, vision } = ctx;
+  const { position, nextMilestone, vision, kartes } = ctx;
+  const karte = kartes?.["future-kouya"];
+
+  if (hasKarte(karte)) {
+    const k = karte!;
+    const parts: string[] = [];
+    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
+    if (k.goal) parts.push(`目標：${k.goal}。`);
+    if (k.challenges) parts.push(`最大の課題は「${k.challenges}」。`);
+    const visionKeyword = vision?.visionKeywords?.[0] ?? "";
+    const closing = visionKeyword
+      ? `${visionKeyword}を実現した私から言います。「${topic}」はこの課題を越える一手として機能しますか？恐れではなくビジョンで選んでください。`
+      : `迷ったら、より大きな自分が選ぶほうへ。「${topic}」がビジョンに近づくものか、その一点で判断してください。`;
+    parts.push(closing);
+    return parts.join(" ");
+  }
 
   const part1 = position?.monthlyRevenue
     ? `現在地：月商${position.monthlyRevenue}、最大の壁は「${position.mainChallenge || "未記録"}」。`
@@ -41,7 +61,19 @@ function futureKouya(agenda: Agenda, ctx: BoardContext): string {
 // ── CFO ────────────────────────────────────────────────────────
 function cfo(agenda: Agenda, ctx: BoardContext): string {
   const topic = agenda.topic || "今日の議題";
-  const { scores } = ctx;
+  const { scores, kartes } = ctx;
+  const karte = kartes?.["cfo"];
+
+  if (hasKarte(karte)) {
+    const k = karte!;
+    const parts: string[] = ["財務の視点から。"];
+    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
+    if (k.kpis) parts.push(`管理KPI：${k.kpis}。`);
+    if (k.challenges) parts.push(`課題：「${k.challenges}」。`);
+    parts.push(`「${topic}」の意思決定に際し、このKPIへの影響を必ず確認してください。数値の根拠なき決断は経営ではなく賭けです。`);
+    return parts.join(" ");
+  }
+
   if (!scores) {
     return `財務的観点から分析します。「${topic}」に関し、まずキャッシュフローへの影響確認が必要です。短期的なコスト増があるとしても、6〜12ヶ月の回収見通しがあるか検討してください。リスクを取るなら上限を決め、その金額内で実行することを推奨します。数値の根拠なき決断は経営ではなく賭けです。`;
   }
@@ -54,12 +86,23 @@ function cfo(agenda: Agenda, ctx: BoardContext): string {
 // ── COO ────────────────────────────────────────────────────────
 function coo(agenda: Agenda, ctx: BoardContext): string {
   const topic = agenda.topic || "今日の議題";
-  const { scores } = ctx;
+  const { scores, kartes } = ctx;
+  const karte = kartes?.["coo"];
   const situation = agenda.situation;
+
+  if (hasKarte(karte)) {
+    const k = karte!;
+    const parts: string[] = ["執行の観点から。"];
+    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
+    if (k.challenges) parts.push(`課題：「${k.challenges}」。`);
+    if (k.goal) parts.push(`目標：${k.goal}。`);
+    parts.push(`「${topic}」を実行に移すには、誰が・いつまでに・何をするかを48時間以内に確定させてください。まず最小の完了可能なアクションを今日中に起こすことを推奨します。`);
+    return parts.join(" ");
+  }
+
   if (scores) {
     const highestScore = Object.values(scores).sort((a, b) => b.score - a.score)[0];
-    const highest = highestScore;
-    return `執行の観点から。「${topic}」の実行には48時間以内に担当・期日・アクションを確定させることが重要です。現在スコア最高の${BUSINESS_LABELS[highest.businessId]}（${highest.score}点）のナレッジを他事業へ横展開することも実行オプションとして検討してください。${situation ? `現状「${situation.slice(0, 25)}…」を踏まえ、` : ""}まず最小の完了可能なアクションを今日中に起こしてください。`;
+    return `執行の観点から。「${topic}」の実行には48時間以内に担当・期日・アクションを確定させることが重要です。現在スコア最高の${BUSINESS_LABELS[highestScore.businessId]}（${highestScore.score}点）のナレッジを他事業へ横展開することも実行オプションとして検討してください。${situation ? `現状「${situation.slice(0, 25)}…」を踏まえ、` : ""}まず最小の完了可能なアクションを今日中に起こしてください。`;
   }
   return `執行の観点から。「${topic}」を実行に移すには、誰が・いつまでに・何をするかを48時間以内に確定させることが重要です。${situation ? `現状「${situation.slice(0, 25)}…」という状況を踏まえ、` : ""}まず最小の完了可能なアクションを今日中に起こしてください。`;
 }
@@ -67,11 +110,23 @@ function coo(agenda: Agenda, ctx: BoardContext): string {
 // ── CHO ────────────────────────────────────────────────────────
 function cho(agenda: Agenda, ctx: BoardContext): string {
   const topic = agenda.topic || "今日の議題";
-  const { energy, mood } = ctx;
+  const { energy, mood, kartes } = ctx;
+  const karte = kartes?.["cho"];
+
+  if (hasKarte(karte)) {
+    const k = karte!;
+    const parts: string[] = ["健康・人的資本の観点から。"];
+    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
+    if (k.challenges) parts.push(`課題：「${k.challenges}」。`);
+    if (k.goal) parts.push(`目標：${k.goal}。`);
+    parts.push(`「${topic}」の実行タイミングは代表のコンディションピーク時に合わせてください。燃え尽きた後の回復コストは、今の予防コストの数倍になります。`);
+    return parts.join(" ");
+  }
+
   const energyText = energy != null ? `エネルギー${energy}/5` : "エネルギー未記録";
   const moodText = mood != null ? `・気分${mood}/5` : "";
   const condition = energy != null && energy <= 2
-    ? "現在低エネルギー状態のため、「${topic}」の実行タイミングを翌朝に後倒しにすることを推奨します。"
+    ? `現在低エネルギー状態のため、「${topic}」の実行タイミングを翌朝に後倒しにすることを推奨します。`
     : energy != null && energy >= 4
       ? `コンディション良好（${energyText}${moodText}）。「${topic}」の高難度タスクは今日の午前に集中してください。`
       : `${energyText}${moodText}。「${topic}」の実行タイミングは代表の体調ピーク時に合わせてください。`;
@@ -84,8 +139,21 @@ function businessExec(
   businessId: keyof typeof BUSINESS_LABELS,
   scores: BusinessScores | undefined,
   visionNote: string,
+  karte?: ExecutiveKarte,
 ): string {
   const label = BUSINESS_LABELS[businessId];
+
+  if (hasKarte(karte)) {
+    const k = karte!;
+    const parts: string[] = [`${label}事業の視点から。`];
+    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
+    if (k.goal) parts.push(`目標：${k.goal}。`);
+    if (k.kpis) parts.push(`KPI：${k.kpis}。`);
+    if (k.challenges) parts.push(`課題は「${k.challenges}」。`);
+    parts.push(`「${topic}」は${k.goal ? "この目標達成に向けた" : ""}施策として整合しているか確認し、相乗効果を最大化する形で実行してください。${visionNote}`);
+    return parts.join(" ");
+  }
+
   if (!scores?.[businessId]) {
     return `${label}事業の視点から。「${topic}」との事業連携可能性を検討しました。ブランドの一貫性を維持しながら進めることで既存顧客の信頼を守れます。${visionNote}`;
   }
@@ -104,7 +172,20 @@ function businessExec(
 // ── 未来戦略室 ──────────────────────────────────────────────────
 function strategy(agenda: Agenda, ctx: BoardContext): string {
   const topic = agenda.topic || "今日の議題";
-  const { nextMilestone, vision } = ctx;
+  const { nextMilestone, vision, kartes } = ctx;
+  const karte = kartes?.["strategy"];
+
+  if (hasKarte(karte)) {
+    const k = karte!;
+    const parts: string[] = ["未来戦略室から総括します。"];
+    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
+    if (k.challenges) parts.push(`戦略上の課題：「${k.challenges}」。`);
+    if (k.goal) parts.push(`目指すべき方向：${k.goal}。`);
+    const keywords = vision?.visionKeywords?.join("・") ?? "";
+    parts.push(`${keywords ? `ビジョン「${keywords}」の実現に向け、` : ""}「${topic}」は不確実性の中での最善手として30日の実験として設計することを提案します。`);
+    return parts.join(" ");
+  }
+
   const keywords = vision?.visionKeywords?.join("・") ?? "";
   const milestoneNote = nextMilestone
     ? `${HORIZON_LABELS[nextMilestone.item.horizon]}後のマイルストーン「${nextMilestone.item.title}」達成を逆算すると、今日「${topic}」を前進させることは必須条件です。`
@@ -118,7 +199,7 @@ export function generateDummyStatements(
   ctx: BoardContext = {},
 ): ExecutiveStatement[] {
   const topic = agenda.topic || "今日の議題";
-  const { vision, scores } = ctx;
+  const { vision, scores, kartes } = ctx;
   const visionKeyword = vision?.visionKeywords?.[0] ?? "";
   const visionNote = visionKeyword
     ? ` ビジョン「${visionKeyword}」との接続を意識して実行してください。`
@@ -129,27 +210,12 @@ export function generateDummyStatements(
     { executiveId: "cfo", content: cfo(agenda, ctx) },
     { executiveId: "coo", content: coo(agenda, ctx) },
     { executiveId: "cho", content: cho(agenda, ctx) },
-    {
-      executiveId: "orivis",
-      content: businessExec(topic, "orivis", scores, visionNote),
-    },
-    {
-      executiveId: "diet",
-      content: businessExec(topic, "diet", scores, visionNote),
-    },
-    {
-      executiveId: "ai",
-      content: businessExec(topic, "ai", scores, visionNote),
-    },
-    {
-      executiveId: "kirei",
-      content: businessExec(topic, "kirei", scores, visionNote),
-    },
-    {
-      executiveId: "publishing",
-      content: businessExec(topic, "publishing", scores, visionNote),
-    },
-    { executiveId: "strategy", content: strategy(agenda, ctx) },
+    { executiveId: "orivis",    content: businessExec(topic, "orivis",    scores, visionNote, kartes?.["orivis"]) },
+    { executiveId: "diet",      content: businessExec(topic, "diet",      scores, visionNote, kartes?.["diet"]) },
+    { executiveId: "ai",        content: businessExec(topic, "ai",        scores, visionNote, kartes?.["ai"]) },
+    { executiveId: "kirei",     content: businessExec(topic, "kirei",     scores, visionNote, kartes?.["kirei"]) },
+    { executiveId: "publishing",content: businessExec(topic, "publishing",scores, visionNote, kartes?.["publishing"]) },
+    { executiveId: "strategy",  content: strategy(agenda, ctx) },
   ];
 }
 
@@ -174,7 +240,7 @@ export function generateRoundStatements(
   executiveIds: ExecutiveId[],
 ): ExecutiveStatement[] {
   const topic = agenda.topic || "今日の議題";
-  const { vision, scores } = ctx;
+  const { vision, scores, kartes } = ctx;
   const visionKeyword = vision?.visionKeywords?.[0] ?? "";
   const visionNote = visionKeyword
     ? ` ビジョン「${visionKeyword}」との接続を意識して実行してください。`
@@ -201,7 +267,7 @@ export function generateRoundStatements(
         break;
       default: {
         const bizId = id as "orivis" | "diet" | "ai" | "kirei" | "publishing";
-        base = businessExec(topic, bizId, scores, visionNote);
+        base = businessExec(topic, bizId, scores, visionNote, kartes?.[bizId]);
       }
     }
     return { executiveId: id, content: `${prefix} ${base}` };

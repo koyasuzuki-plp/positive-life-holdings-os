@@ -20,12 +20,14 @@ import type {
   Agenda,
   BoardSession,
   Executive,
+  ExecutiveId,
   ExecutiveStatement,
   MeetingRound,
 } from "@/lib/board/types";
 import {
   loadBusinessScores,
   loadCurrentPosition,
+  loadKarteMap,
   loadVisionMap,
 } from "@/lib/board/contextStorage";
 import { getNextMilestone } from "@/lib/board/milestone";
@@ -60,6 +62,7 @@ function loadBoardContext(): BoardContext {
     nextMilestone,
     energy: todayLog?.energy ?? null,
     mood: todayLog?.mood ?? null,
+    kartes: loadKarteMap(),
   };
 }
 
@@ -72,6 +75,15 @@ export function SessionRoom({ onSave }: SessionRoomProps) {
 
   const [phase, setPhase] = useState<Phase>("form");
   const [agenda, setAgenda] = useState<Agenda>(EMPTY_AGENDA);
+  const [attendees, setAttendees] = useState<ExecutiveId[]>(
+    () => EXECUTIVES.map((e) => e.id)
+  );
+
+  function toggleAttendee(id: ExecutiveId) {
+    setAttendees((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
 
   // ラウンド管理
   const [round, setRound] = useState(1);
@@ -102,7 +114,8 @@ export function SessionRoom({ onSave }: SessionRoomProps) {
     if (!agenda.topic.trim()) return;
     const ctx = loadBoardContext();
     setBoardCtx(ctx);
-    const stmts = generateDummyStatements(agenda, ctx);
+    const allStmts = generateDummyStatements(agenda, ctx);
+    const stmts = allStmts.filter((s) => attendees.includes(s.executiveId));
     const res = getDummyResolution(agenda);
     setCurrentStatements(stmts);
     setCurrentResolution(res);
@@ -111,7 +124,7 @@ export function SessionRoom({ onSave }: SessionRoomProps) {
     setCompletedRounds([]);
     setSaved(false);
     setPhase("session");
-  }, [agenda]);
+  }, [agenda, attendees]);
 
   function handleDecide() {
     const finalRound: MeetingRound = {
@@ -134,7 +147,8 @@ export function SessionRoom({ onSave }: SessionRoomProps) {
     };
     const nextRound = round + 1;
     const intent = detectCEOIntent(ceoComment);
-    const execIds = selectRoundExecutives(intent);
+    const preferred = selectRoundExecutives(intent).filter((id) => attendees.includes(id));
+    const execIds = preferred.length > 0 ? preferred : attendees.slice(0, 3);
     const stmts = generateRoundStatements(agenda, ceoComment, nextRound, boardCtx, execIds);
     const res = generateRoundResolution(agenda, ceoComment, nextRound);
 
@@ -152,6 +166,7 @@ export function SessionRoom({ onSave }: SessionRoomProps) {
       id: `${todayKey()}-${Date.now()}`,
       date: todayKey(),
       agenda,
+      attendees,
       rounds: completedRounds,
       finalResolution: lastRound?.resolution ?? "",
       finalNextAction: lastRound?.nextAction ?? "",
@@ -215,17 +230,48 @@ export function SessionRoom({ onSave }: SessionRoomProps) {
           </Card>
 
           <Card>
-            <CardHeader label="出席役員" title={`${EXECUTIVES.length}名`} />
-            <div className="flex flex-wrap gap-1.5">
-              {EXECUTIVES.map((exec) => (
-                <span
-                  key={exec.id}
-                  className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold text-white ${exec.colorClass}`}
-                  title={exec.name}
-                >
-                  {exec.initial}
-                </span>
-              ))}
+            <CardHeader
+              label="出席役員"
+              title={`${attendees.length}名選択中`}
+            />
+            <div className="space-y-1.5">
+              {EXECUTIVES.map((exec) => {
+                const selected = attendees.includes(exec.id);
+                const isOnlyOne = selected && attendees.length === 1;
+                return (
+                  <button
+                    key={exec.id}
+                    type="button"
+                    onClick={() => !isOnlyOne && toggleAttendee(exec.id)}
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left active:opacity-70 ${
+                      selected ? "bg-primary/10" : "bg-muted/30 opacity-50"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${exec.colorClass}`}
+                    >
+                      {exec.initial}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-card-foreground">
+                        {exec.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {exec.businessLabel}
+                      </p>
+                    </div>
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-[10px] font-bold ${
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-muted-foreground/30 text-transparent"
+                      }`}
+                    >
+                      ✓
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </Card>
 

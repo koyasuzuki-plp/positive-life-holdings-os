@@ -1,4 +1,5 @@
 import type { BusinessScores, CurrentPosition, VisionMap } from "./context";
+import type { KarteMap } from "./types";
 import {
   defaultBusinessScores,
   defaultCurrentPosition,
@@ -8,6 +9,7 @@ import {
 const VISION_KEY = "positive-life-os-vision";
 const POSITION_KEY = "positive-life-os-position";
 const SCORES_KEY = "positive-life-os-scores";
+const KARTE_KEY = "positive-life-os-karte";
 
 function safeLoad<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -45,4 +47,11 @@ export function loadBusinessScores(): BusinessScores {
 }
 export function saveBusinessScores(s: BusinessScores): void {
   safeSave(SCORES_KEY, s);
+}
+
+export function loadKarteMap(): KarteMap {
+  return safeLoad<KarteMap>(KARTE_KEY, {});
+}
+export function saveKarteMap(k: KarteMap): void {
+  safeSave(KARTE_KEY, k);
 }
