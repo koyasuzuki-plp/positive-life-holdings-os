@@ -116,7 +116,7 @@ export function SessionRoom({ onSave }: SessionRoomProps) {
     setBoardCtx(ctx);
     const allStmts = generateDummyStatements(agenda, ctx);
     const stmts = allStmts.filter((s) => attendees.includes(s.executiveId));
-    const res = getDummyResolution(agenda);
+    const res = getDummyResolution(agenda, ctx);
     setCurrentStatements(stmts);
     setCurrentResolution(res);
     setRevealedCount(0);
@@ -150,7 +150,7 @@ export function SessionRoom({ onSave }: SessionRoomProps) {
     const preferred = selectRoundExecutives(intent).filter((id) => attendees.includes(id));
     const execIds = preferred.length > 0 ? preferred : attendees.slice(0, 3);
     const stmts = generateRoundStatements(agenda, ceoComment, nextRound, boardCtx, execIds);
-    const res = generateRoundResolution(agenda, ceoComment, nextRound);
+    const res = generateRoundResolution(agenda, ceoComment, nextRound, boardCtx);
 
     setCompletedRounds((prev) => [...prev, done]);
     setCurrentStatements(stmts);

@@ -30,16 +30,19 @@ function futureKouya(agenda: Agenda, ctx: BoardContext): string {
 
   if (hasKarte(karte)) {
     const k = karte!;
-    const parts: string[] = [];
-    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
-    if (k.goal) parts.push(`目標：${k.goal}。`);
-    if (k.challenges) parts.push(`最大の課題は「${k.challenges}」。`);
     const visionKeyword = vision?.visionKeywords?.[0] ?? "";
+    const statusPart = k.currentStatus && k.goal
+      ? `${k.currentStatus}という現状から、目標「${k.goal}」に向かうにあたり`
+      : k.currentStatus
+        ? `${k.currentStatus}という現状において`
+        : `目標「${k.goal}」の実現に向け`;
+    const challengePart = k.challenges
+      ? `、最大の課題は「${k.challenges}」です。`
+      : `、経営判断の精度を上げることが必要です。`;
     const closing = visionKeyword
-      ? `${visionKeyword}を実現した私から言います。「${topic}」はこの課題を越える一手として機能しますか？恐れではなくビジョンで選んでください。`
-      : `迷ったら、より大きな自分が選ぶほうへ。「${topic}」がビジョンに近づくものか、その一点で判断してください。`;
-    parts.push(closing);
-    return parts.join(" ");
+      ? `${visionKeyword}を実現した私から問います。「${topic}」はこの課題を突破できる判断ですか？数字ではなくビジョンで選んでください。`
+      : `「${topic}」はこの課題を越えるための判断ですか？恐れではなくビジョンで選んでください。`;
+    return `${statusPart}${challengePart} ${closing}`;
   }
 
   const part1 = position?.monthlyRevenue
@@ -66,12 +69,15 @@ function cfo(agenda: Agenda, ctx: BoardContext): string {
 
   if (hasKarte(karte)) {
     const k = karte!;
-    const parts: string[] = ["財務の視点から。"];
-    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
-    if (k.kpis) parts.push(`管理KPI：${k.kpis}。`);
-    if (k.challenges) parts.push(`課題：「${k.challenges}」。`);
-    parts.push(`「${topic}」の意思決定に際し、このKPIへの影響を必ず確認してください。数値の根拠なき決断は経営ではなく賭けです。`);
-    return parts.join(" ");
+    const statusPart = k.currentStatus ? `${k.currentStatus}の状態で` : "財務状況を踏まえ";
+    const kpiPart = k.kpis ? `、管理KPI「${k.kpis}」を基準にすると` : "";
+    const challengePart = k.challenges
+      ? `、課題「${k.challenges}」が財務的リスクになっています。`
+      : `、財務的な裏付けの確認が必要です。`;
+    const actionPart = k.kpis
+      ? `「${topic}」への判断は、まず「${k.kpis}」への影響を数値で試算してから行ってください。数値なき決断は経営ではなく賭けです。`
+      : `「${topic}」への投資判断前に、キャッシュフローへの影響を必ず確認してください。数値なき決断は経営ではなく賭けです。`;
+    return `財務の視点から。${statusPart}${kpiPart}${challengePart} ${actionPart}`;
   }
 
   if (!scores) {
@@ -92,12 +98,14 @@ function coo(agenda: Agenda, ctx: BoardContext): string {
 
   if (hasKarte(karte)) {
     const k = karte!;
-    const parts: string[] = ["執行の観点から。"];
-    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
-    if (k.challenges) parts.push(`課題：「${k.challenges}」。`);
-    if (k.goal) parts.push(`目標：${k.goal}。`);
-    parts.push(`「${topic}」を実行に移すには、誰が・いつまでに・何をするかを48時間以内に確定させてください。まず最小の完了可能なアクションを今日中に起こすことを推奨します。`);
-    return parts.join(" ");
+    const statusPart = k.currentStatus ? `${k.currentStatus}という執行状況で` : "執行面では";
+    const challengePart = k.challenges
+      ? `、「${k.challenges}」という課題を抱えています。`
+      : `、実行体制の整備が必要です。`;
+    const actionPart = k.challenges
+      ? `「${topic}」を前進させるには、まず「${k.challenges}」への対処を今日中に一手決めてください。担当・期日・アクションの3点を確定することが実行の起点です。`
+      : `「${topic}」の実行を今日中に誰が・いつまでに・何をするかで定義してください。`;
+    return `執行の観点から。${statusPart}${challengePart} ${actionPart}`;
   }
 
   if (scores) {
@@ -115,12 +123,17 @@ function cho(agenda: Agenda, ctx: BoardContext): string {
 
   if (hasKarte(karte)) {
     const k = karte!;
-    const parts: string[] = ["健康・人的資本の観点から。"];
-    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
-    if (k.challenges) parts.push(`課題：「${k.challenges}」。`);
-    if (k.goal) parts.push(`目標：${k.goal}。`);
-    parts.push(`「${topic}」の実行タイミングは代表のコンディションピーク時に合わせてください。燃え尽きた後の回復コストは、今の予防コストの数倍になります。`);
-    return parts.join(" ");
+    const statusPart = k.currentStatus ? `${k.currentStatus}の状態で` : "健康面では";
+    const challengePart = k.challenges
+      ? `、「${k.challenges}」が人的資本のリスクです。`
+      : `、持続可能な負荷設計が必要です。`;
+    const goalPart = k.goal
+      ? `目標「${k.goal}」に向けて体制を整えながら、`
+      : "";
+    const actionPart = k.challenges
+      ? `${goalPart}「${topic}」の実行タイミングは「${k.challenges}」が解消されてから、またはその解消と並行して設計してください。燃え尽きた後の回復コストは、今の予防コストの数倍になります。`
+      : `${goalPart}「${topic}」の実行負荷がCEOの体力を超えないか確認してください。`;
+    return `健康・人的資本の観点から。${statusPart}${challengePart} ${actionPart}`;
   }
 
   const energyText = energy != null ? `エネルギー${energy}/5` : "エネルギー未記録";
@@ -145,13 +158,25 @@ function businessExec(
 
   if (hasKarte(karte)) {
     const k = karte!;
-    const parts: string[] = [`${label}事業の視点から。`];
-    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
-    if (k.goal) parts.push(`目標：${k.goal}。`);
-    if (k.kpis) parts.push(`KPI：${k.kpis}。`);
-    if (k.challenges) parts.push(`課題は「${k.challenges}」。`);
-    parts.push(`「${topic}」は${k.goal ? "この目標達成に向けた" : ""}施策として整合しているか確認し、相乗効果を最大化する形で実行してください。${visionNote}`);
-    return parts.join(" ");
+    const gapPart = k.currentStatus && k.goal
+      ? `${k.currentStatus}で、目標「${k.goal}」まで`
+      : k.currentStatus
+        ? `${k.currentStatus}の状況で`
+        : `目標「${k.goal}」に向かう中で`;
+    const challengePart = k.challenges
+      ? `「${k.challenges}」が課題です。`
+      : `前進が必要な状況です。`;
+    const proposalPart = k.challenges
+      ? `「${topic}」に対しては、「${k.challenges}」を解消する方向での施策設計を提案します。`
+      : k.goal
+        ? `「${topic}」は「${k.goal}」の達成に直結するか判断してください。`
+        : `「${topic}」への対応を${label}事業の観点から検討してください。`;
+    const actionPart = k.challenges
+      ? `今日やるべきことは、「${k.challenges}」に直接手を打つ最小アクションを一つ決定することです。${visionNote}`
+      : k.kpis
+        ? `今日やるべきことは、KPI「${k.kpis}」を動かす最初の一手を決定することです。${visionNote}`
+        : `今日中に${label}事業としての具体的な次の一手を決定してください。${visionNote}`;
+    return `${label}事業の視点から。${gapPart}${challengePart} ${proposalPart} ${actionPart}`;
   }
 
   if (!scores?.[businessId]) {
@@ -177,13 +202,16 @@ function strategy(agenda: Agenda, ctx: BoardContext): string {
 
   if (hasKarte(karte)) {
     const k = karte!;
-    const parts: string[] = ["未来戦略室から総括します。"];
-    if (k.currentStatus) parts.push(`現状：${k.currentStatus}。`);
-    if (k.challenges) parts.push(`戦略上の課題：「${k.challenges}」。`);
-    if (k.goal) parts.push(`目指すべき方向：${k.goal}。`);
+    const statusPart = k.currentStatus ? `${k.currentStatus}という戦略状況で` : "戦略的観点から";
+    const challengePart = k.challenges
+      ? `、最大の戦略課題は「${k.challenges}」です。`
+      : `、中長期の方向性を定める必要があります。`;
+    const goalPart = k.goal ? `目指すべき方向は「${k.goal}」。` : "";
     const keywords = vision?.visionKeywords?.join("・") ?? "";
-    parts.push(`${keywords ? `ビジョン「${keywords}」の実現に向け、` : ""}「${topic}」は不確実性の中での最善手として30日の実験として設計することを提案します。`);
-    return parts.join(" ");
+    const experimentPart = k.challenges
+      ? `${keywords ? `ビジョン「${keywords}」の実現に向け、` : ""}「${topic}」は「${k.challenges}」の突破口として30日間の小実験に落とし込むことを提案します。まず実験の仮説・測定指標・終了条件を今日中に定義してください。`
+      : `${keywords ? `ビジョン「${keywords}」の実現に向け、` : ""}「${topic}」を30日の実験として設計し、仮説と測定指標を今日中に定義してください。`;
+    return `未来戦略室から総括します。${statusPart}${challengePart} ${goalPart}${experimentPart}`;
   }
 
   const keywords = vision?.visionKeywords?.join("・") ?? "";
@@ -207,28 +235,40 @@ export function generateDummyStatements(
 
   return [
     { executiveId: "future-kouya", content: futureKouya(agenda, ctx) },
-    { executiveId: "cfo", content: cfo(agenda, ctx) },
-    { executiveId: "coo", content: coo(agenda, ctx) },
-    { executiveId: "cho", content: cho(agenda, ctx) },
-    { executiveId: "orivis",    content: businessExec(topic, "orivis",    scores, visionNote, kartes?.["orivis"]) },
-    { executiveId: "diet",      content: businessExec(topic, "diet",      scores, visionNote, kartes?.["diet"]) },
-    { executiveId: "ai",        content: businessExec(topic, "ai",        scores, visionNote, kartes?.["ai"]) },
-    { executiveId: "kirei",     content: businessExec(topic, "kirei",     scores, visionNote, kartes?.["kirei"]) },
-    { executiveId: "publishing",content: businessExec(topic, "publishing",scores, visionNote, kartes?.["publishing"]) },
-    { executiveId: "strategy",  content: strategy(agenda, ctx) },
+    { executiveId: "cfo",          content: cfo(agenda, ctx) },
+    { executiveId: "coo",          content: coo(agenda, ctx) },
+    { executiveId: "cho",          content: cho(agenda, ctx) },
+    { executiveId: "orivis",       content: businessExec(topic, "orivis",     scores, visionNote, kartes?.["orivis"]) },
+    { executiveId: "diet",         content: businessExec(topic, "diet",       scores, visionNote, kartes?.["diet"]) },
+    { executiveId: "ai",           content: businessExec(topic, "ai",         scores, visionNote, kartes?.["ai"]) },
+    { executiveId: "kirei",        content: businessExec(topic, "kirei",      scores, visionNote, kartes?.["kirei"]) },
+    { executiveId: "publishing",   content: businessExec(topic, "publishing", scores, visionNote, kartes?.["publishing"]) },
+    { executiveId: "strategy",     content: strategy(agenda, ctx) },
   ];
 }
 
 export function getDummyResolution(
   agenda: Agenda,
+  ctx: BoardContext = {},
 ): { resolution: string; nextAction: string } {
   const topic = agenda.topic || "今日の議題";
-  return {
-    resolution: `「${topic}」について全役員の意見を統合した結果、リスクを管理しながら前進することを決議します。財務的裏付けを確認しつつ、最小単位での実行から開始し、30日後に成果を計測します。`,
-    nextAction: agenda.decision
-      ? `${agenda.decision}に対し、48時間以内に最初のアクションを実行する。担当：代表こうや。`
-      : "48時間以内に最初の一手を実行し、30日後に役員会で進捗を報告する。",
-  };
+  const { kartes } = ctx;
+
+  const topChallenge = kartes
+    ? (Object.values(kartes) as (ExecutiveKarte | undefined)[]).find((k) => k?.challenges)?.challenges
+    : undefined;
+
+  const resolution = agenda.decision
+    ? `「${topic}」について全役員の議論を経て、「${agenda.decision}」を採択することを決議します。${topChallenge ? `特に「${topChallenge}」の解決を優先課題として位置づけ、この解決と連動させて実行します。` : "リスクを管理しながら最小単位での実行から開始します。"}`
+    : `「${topic}」について全役員の意見を統合した結果、${topChallenge ? `「${topChallenge}」への対処を最初のステップとして前進することを決議します。` : "リスクを管理しながら前進することを決議します。最小単位での実行から開始し、30日後に成果を計測します。"}`;
+
+  const nextAction = agenda.decision
+    ? `「${agenda.decision}」を実行する。${topChallenge ? `まず「${topChallenge}」に対処する具体アクションを本日中に決定し着手する。` : "担当者と期日を本日中に確定する。"}`
+    : topChallenge
+      ? `「${topChallenge}」を解消する最初のアクションを本日中に一つ決定し、実行する。`
+      : `「${topic}」の方向性を本日中に確定し、明日から行動を開始する。`;
+
+  return { resolution, nextAction };
 }
 
 // ── ラウンド2/3用：CEO コメントを踏まえた再発言 ────────────────────
@@ -279,19 +319,27 @@ export function generateRoundResolution(
   agenda: Agenda,
   ceoComment: string,
   roundNumber: number,
+  ctx: BoardContext = {},
 ): { resolution: string; nextAction: string } {
   const topic = agenda.topic || "今日の議題";
+  const { kartes } = ctx;
   const short = ceoComment.trim().length > 0
     ? (ceoComment.length > 22 ? `${ceoComment.slice(0, 22)}…` : ceoComment)
     : "前回の議論";
   const isFinal = roundNumber >= 3;
 
+  const topChallenge = kartes
+    ? (Object.values(kartes) as (ExecutiveKarte | undefined)[]).find((k) => k?.challenges)?.challenges
+    : undefined;
+
   return {
     resolution: isFinal
-      ? `「${short}」というCEOの最終指示を受け、全役員が最終見解を統合しました。「${topic}」について確実に実行できる最小単位のアクションを即時開始し、30日後に成果を計測します。`
-      : `CEOの「${short}」というご意向を踏まえ、「${topic}」について役員会の見解を更新しました。前回より実行精度を高め、CEOの方向性に沿った形で前進することを決議します。`,
+      ? `「${short}」というCEOの最終指示を受け、全役員が最終見解を統合しました。「${topic}」について${topChallenge ? `「${topChallenge}」を起点とした` : ""}実行可能な最小アクションを即時開始します。`
+      : `CEOの「${short}」を踏まえ、「${topic}」への見解を更新しました。${topChallenge ? `「${topChallenge}」への対処を軸に` : ""}前回より実行精度を高めた形で前進することを決議します。`,
     nextAction: agenda.decision
-      ? `${agenda.decision}に対し、「${short}」を軸に48時間以内に最初のアクションを実行する。担当：代表こうや。`
-      : `「${short}」の方向性で48時間以内に最初の一手を実行し、30日後に役員会で進捗を報告する。`,
+      ? `「${agenda.decision}」に対し、「${short}」を軸に${topChallenge ? `「${topChallenge}」の解消から着手する。` : "本日中に最初のアクションを実行する。"}`
+      : topChallenge
+        ? `「${short}」の方向性で「${topChallenge}」を解消する最初の一手を本日中に実行する。`
+        : `「${short}」の方向性で本日中に最初の一手を実行し、30日後に役員会で進捗を報告する。`,
   };
 }
